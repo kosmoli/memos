@@ -88,8 +88,13 @@ class AgentType(str, Enum):
 
 
 class ProviderCategory(str, Enum):
-    base = "base"
-    byok = "byok"
+    """Provider category - determines how API keys are managed.
+
+    Memos: All providers are BYOK type (Bring Your Own Key).
+    The 'base' category is deprecated and no longer used.
+    """
+    byok = "byok"  # All providers are BYOK type (API key stored in database)
+    # base = "base"  # DEPRECATED - No longer supported in Memos
 
 
 class MessageRole(str, Enum):
