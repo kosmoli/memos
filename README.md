@@ -2,128 +2,128 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/letta-ai/letta/refs/heads/main/assets/Letta-logo-RGB_GreyonTransparent_cropped_small.png">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/letta-ai/letta/refs/heads/main/assets/Letta-logo-RGB_OffBlackonTransparent_cropped_small.png">
-    <img alt="Letta logo" src="https://raw.githubusercontent.com/letta-ai/letta/refs/heads/main/assets/Letta-logo-RGB_GreyonOffBlack_cropped_small.png" width="500">
+    <img alt="Memos logo" src="https://raw.githubusercontent.com/letta-ai/letta/refs/heads/main/assets/Letta-logo-RGB_GreyonOffBlack_cropped_small.png" width="500">
   </picture>
 </p>
 
-# Letta (formerly MemGPT)
+# Memos (Fork of Letta)
 
-Letta is the platform for building stateful agents: open AI with advanced memory that can learn and self-improve over time.
+> **A fork of Letta with unified provider management and no platform lock-in**
 
-* [**Quickstart**](https://docs.letta.com/quickstart): Build your first stateful agent in 5 minutes using Python or TypeScript
-* [**Understanding agent memory**](https://docs.letta.com/core-concepts): Learn about memory blocks, tools, and how Letta agents maintain state
-* [**Examples and tutorials**](https://docs.letta.com/tutorials/): Working code examples for common use cases and agent patterns
-* [**API reference**](https://docs.letta.com/api): Complete REST API and SDK documentation for Python and TypeScript
+Memos is a modified version of [Letta](https://github.com/letta-ai/letta) that removes artificial restrictions on provider management and unifies the provider system.
 
-> [!TIP]
-> **Letta Code** is a memory-first coding harness, built on top of the Letta API. Instead of working in independent sessions, you work with a persisted agent that learns over time and is portable across models. You can use Letta Code to interact with any Letta agent via the CLI.
-> 
-> Read more about how to use Letta Code on the [official docs page](https://docs.letta.com/letta-code), or on the [GitHub repo](https://github.com/letta-ai/letta-code).
+## Why Memos?
 
-## Get started with the Letta API
+Memos was created to address specific limitations in the original Letta project:
 
-Use the Letta API to build stateful agents that remember, learn, and improve over time. Letta allows you to build agents on any model provider, including OpenAI, Anthropic, Google Gemini, and more.
+### Problems with Letta
+
+| Issue | Description |
+|-------|-------------|
+| **Base vs BYOK Confusion** | Two different provider modes with different behaviors |
+| **`openai-proxy` Hardcoding** | Custom OpenAI-compatible APIs forced to use `openai-proxy` prefix |
+| **Soft Delete Issues** | Cannot reuse provider names after deletion |
+| **Platform Prioritization** | Official platform features prioritized over open-source users |
+
+### What Memos Changes
+
+- **Unified Provider System**: All providers (including official APIs) are created through the API and stored in the database
+- **Custom Provider Names**: Use your own names for providers, no forced prefixes
+- **Hard Delete**: Providers are truly deleted, allowing name reuse
+- **No Platform Lock-in**: Complete control over your AI agent infrastructure
+
+## Documentation
+
+See the `docs/` folder for detailed documentation:
+
+- **[LETTA_ARCHITECTURE_DEEP_DIVE.md](docs/LETTA_ARCHITECTURE_DEEP_DIVE.md)** - Complete analysis of Letta's architecture and implementation
+- **[KETTA_PROVIDER_UNIFICATION_PLAN.md](docs/KETTA_PROVIDER_UNIFICATION_PLAN.md)** - The plan for unifying the provider system
+
+## Quick Start
 
 ### Installation
 
-TypeScript / Node.js:
 ```bash
-npm install @letta-ai/letta-client
+# Clone the repository
+git clone https://github.com/kosmoli/memos.git
+cd memos
+
+# Install dependencies
+pip install -e .
+
+# Or use uv (recommended)
+uv pip install -e .
 ```
 
-Python:
+### Running the Server
+
 ```bash
-pip install letta-client
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Start the server
+python -m letta.server.rest_api.server
 ```
 
-### Hello World example
+The server will start on `http://localhost:8283`.
 
-Below is a quick example of creating a stateful agent and sending it a message.
-See the full [quickstart guide](https://docs.letta.com/quickstart) for complete documentation.
+## Compatibility with Letta
 
-Running the examples require a [Letta Developer Platform](https://app.letta.com) account, or a [self-hosted Letta server](https://docs.letta.com/guides/selfhosting/).
+Memos aims to maintain API compatibility with Letta where possible, so existing Letta clients should work with Memos. However, there are behavioral differences:
 
-TypeScript:
-```typescript
-import Letta from "@letta-ai/letta-client";
+1. **Provider Management**: All providers must be created via API (no auto-sync from environment)
+2. **Provider Handles**: Handles use the provider's actual name (no `openai-proxy` prefix)
+3. **Provider Deletion**: Deletion is permanent (hard delete)
 
-const client = new Letta({ apiKey: process.env.LETTA_API_KEY });
+## Development
 
-// Create your agent
-const agentState = await client.agents.create({
-  model: "openai/gpt-4.1",
-  embedding: "openai/text-embedding-3-small",
-  memory_blocks: [
-    {
-      label: "human",
-      value:
-        "Name: Timber. Status: dog. Occupation: building Letta, infrastructure to democratize self-improving superintelligence",
-    },
-    {
-      label: "persona",
-      value:
-        "I am a self-improving superintelligence. Timber is my best friend and collaborator.",
-    },
-  ],
-  tools: ["web_search", "run_code"],
-});
+### Branch Strategy
 
-console.log("Agent created with ID:", agentState.id);
+- `main` - Tracks upstream Letta changes
+- `memos` - Our modifications and improvements
 
-// Send your agent a message
-const response = await client.agents.messages.create(agentState.id, {
-  input: "What do you know about me?",
-});
+### Syncing with Upstream
 
-for (const message of response.messages) {
-  console.log(message);
-}
+```bash
+# Add Letta as upstream (if not already added)
+git remote add letta https://github.com/letta-ai/letta.git
+
+# Fetch upstream changes
+git fetch letta main
+
+# Review changes
+git log HEAD..letta/main --oneline
+
+# Cherry-pick specific fixes
+git cherry-pick <commit-hash>
 ```
 
-Python:
-```python
-from letta_client import Letta
-import os
+### Running Tests
 
-client = Letta(api_key=os.getenv("LETTA_API_KEY"))
+```bash
+# Install test dependencies
+pip install -e ".[test]"
 
-# Create your agent
-agent_state = client.agents.create(
-    model="openai/gpt-4.1",
-    embedding="openai/text-embedding-3-small",
-    memory_blocks=[
-        {
-          "label": "human",
-          "value": "Name: Timber. Status: dog. Occupation: building Letta, infrastructure to democratize self-improving superintelligence"
-        },
-        {
-          "label": "persona",
-          "value": "I am a self-improving superintelligence. Timber is my best friend and collaborator."
-        }
-    ],
-    tools=["web_search", "run_code"]
-)
-
-print(f"Agent created with ID: {agent_state.id}")
-
-# Send your agent a message
-response = client.agents.messages.create(
-    agent_id=agent_state.id,
-    input="What do you know about me?"
-)
-
-for message in response.messages:
-    print(message)
+# Run tests
+pytest tests/
 ```
 
 ## Contributing
 
-Letta is an open source project built by over a hundred contributors from around the world. There are many ways to get involved in the Letta OSS project!
+Memos is an open source project. Contributions are welcome!
 
-* [**Join the Discord**](https://discord.gg/letta): Chat with the Letta devs and other AI developers.
-* [**Chat on our forum**](https://forum.letta.com/): If you're not into Discord, check out our developer forum.
-* **Follow our socials**: [Twitter/X](https://twitter.com/Letta_AI), [LinkedIn](https://www.linkedin.com/in/letta), [YouTube](https://www.youtube.com/@letta-ai)
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## Acknowledgments
+
+- **[Letta](https://github.com/letta-ai/letta)** - The original project
+- **[Klui](https://github.com/kosmoli/klui)** - The frontend UI for Memos
+
+## License
+
+This project is licensed under the same license as Letta (see [LICENSE](LICENSE)).
 
 ---
 
-***Legal notices**: By using Letta and related Letta services (such as the Letta endpoint or hosted service), you are agreeing to our [privacy policy](https://www.letta.com/privacy-policy) and [terms of service](https://www.letta.com/terms-of-service).*
+**Note**: This is a fork of Letta. For the original project, visit https://github.com/letta-ai/letta
