@@ -72,6 +72,8 @@ async def create_provider(
 ):
     """
     Create a new custom provider.
+
+    Memos: All providers are BYOK type (API key stored in database).
     """
     actor = await server.user_manager.get_actor_or_default_async(actor_id=headers.actor_id)
     for field_name in request.model_fields:
@@ -79,9 +81,8 @@ async def create_provider(
         if isinstance(value, str) and value == "":
             setattr(request, field_name, None)
 
-    # ProviderCreate no longer has provider_category field
-    # API-created providers are always BYOK (bring your own key)
-    provider = await server.provider_manager.create_provider_async(request, actor=actor, is_byok=True)
+    # Memos: All providers are BYOK type, no is_byok parameter needed
+    provider = await server.provider_manager.create_provider_async(request, actor=actor)
     return provider
 
 
