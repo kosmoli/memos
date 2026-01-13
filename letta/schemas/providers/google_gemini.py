@@ -16,7 +16,7 @@ from letta.schemas.providers.base import Provider
 
 class GoogleAIProvider(Provider):
     provider_type: Literal[ProviderType.google_ai] = Field(ProviderType.google_ai, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the Google AI API.", deprecated=True)
     base_url: str = "https://generativelanguage.googleapis.com"
 

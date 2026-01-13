@@ -12,7 +12,7 @@ from letta.schemas.providers.base import Provider
 # TODO (cliandy): GoogleVertexProvider uses hardcoded models vs Gemini fetches from API
 class GoogleVertexProvider(Provider):
     provider_type: Literal[ProviderType.google_vertex] = Field(ProviderType.google_vertex, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     google_cloud_project: str = Field(..., description="GCP project ID for the Google Vertex API.")
     google_cloud_location: str = Field(..., description="GCP region for the Google Vertex API.")
 

@@ -9,7 +9,7 @@ from letta.schemas.providers.openai import OpenAIProvider
 
 class GroqProvider(OpenAIProvider):
     provider_type: Literal[ProviderType.groq] = Field(ProviderType.groq, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = "https://api.groq.com/openai/v1"
     api_key: str | None = Field(None, description="API key for the Groq API.", deprecated=True)
 

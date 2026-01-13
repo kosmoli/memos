@@ -23,7 +23,7 @@ class ZAIProvider(OpenAIProvider):
     """Z.ai (ZhipuAI) provider - https://docs.z.ai/"""
 
     provider_type: Literal[ProviderType.zai] = Field(ProviderType.zai, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the Z.ai API.", deprecated=True)
     base_url: str = Field("https://api.z.ai/api/paas/v4/", description="Base URL for the Z.ai API.")
 

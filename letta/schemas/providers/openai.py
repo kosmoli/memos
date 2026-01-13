@@ -20,7 +20,9 @@ DEFAULT_EMBEDDING_BATCH_SIZE = 1024
 
 class OpenAIProvider(Provider):
     provider_type: Literal[ProviderType.openai] = Field(ProviderType.openai, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    # Memos: Changed default from ProviderCategory.base to ProviderCategory.byok
+    # All providers are now created through the API and stored in the database
+    provider_category: ProviderCategory = Field(ProviderCategory.byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the OpenAI API.", deprecated=True)
     base_url: str = Field("https://api.openai.com/v1", description="Base URL for the OpenAI API.")
 
@@ -161,12 +163,9 @@ class OpenAIProvider(Provider):
                 ):
                     continue
 
-            # We'll set the model endpoint based on the base URL
-            # Note: openai-proxy just means that the model is using the OpenAIProvider
-            if self.base_url != "https://api.openai.com/v1":
-                handle = self.get_handle(model_name, base_name="openai-proxy")
-            else:
-                handle = self.get_handle(model_name)
+            # Memos: Always use the provider's name for the handle, not "openai-proxy"
+            # This allows users to use custom provider names for OpenAI-compatible APIs
+            handle = self.get_handle(model_name)
 
             config = LLMConfig(
                 model=model_name,

@@ -318,11 +318,9 @@ class OpenAIProvider(Provider):
                 if skip:
                     continue
 
-            # set the handle to openai-proxy if the base URL isn't OpenAI
-            if self.base_url != "https://api.openai.com/v1":
-                handle = self.get_handle(model_name, base_name="openai-proxy")
-            else:
-                handle = self.get_handle(model_name)
+            # Memos: Always use the provider's name for the handle, not "openai-proxy"
+            # This allows users to use custom provider names for OpenAI-compatible APIs
+            handle = self.get_handle(model_name)
 
             llm_config = LLMConfig(
                 model=model_name,

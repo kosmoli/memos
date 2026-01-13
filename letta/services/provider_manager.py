@@ -24,67 +24,45 @@ logger = get_logger(__name__)
 class ProviderManager:
     @enforce_types
     @trace_method
-    async def create_provider_async(self, request: ProviderCreate, actor: PydanticUser, is_byok: bool = True) -> PydanticProvider:
+    async def create_provider_async(self, request: ProviderCreate, actor: PydanticUser) -> PydanticProvider:
         """Create a new provider if it doesn't already exist.
+
+        Memos: Unified provider system - all providers are BYOK type and stored in the database.
 
         Args:
             request: ProviderCreate object with provider details
             actor: User creating the provider
-            is_byok: If True, creates a BYOK provider (default). If False, creates a base provider.
         """
         async with db_registry.async_session() as session:
-            # Check for name conflicts
-            if is_byok:
-                # BYOK providers cannot use the same name as base providers
-                existing_base_providers = await ProviderModel.list_async(
-                    db_session=session,
-                    name=request.name,
-                    organization_id=None,  # Base providers have NULL organization_id
-                    limit=1,
+            # Memos: Check if there's a provider with the same name (including soft-deleted)
+            # for the current organization
+            stmt = select(ProviderModel).where(
+                and_(
+                    ProviderModel.name == request.name,
+                    ProviderModel.organization_id == actor.organization_id,
                 )
-                if existing_base_providers:
-                    raise ValueError(
-                        f"Provider name '{request.name}' conflicts with an existing base provider. Please choose a different name."
-                    )
-            else:
-                # Base providers must have unique names among themselves
-                # (the DB constraint won't catch this because NULL != NULL)
-                existing_base_providers = await ProviderModel.list_async(
-                    db_session=session,
-                    name=request.name,
-                    organization_id=None,  # Base providers have NULL organization_id
-                    limit=1,
-                )
-                if existing_base_providers:
-                    raise ValueError(f"Base provider name '{request.name}' already exists. Please choose a different name.")
-
-            # Check if there's a soft-deleted provider with the same name that we can restore
-            org_id = actor.organization_id if is_byok else None
-            if org_id is not None:
-                stmt = select(ProviderModel).where(
-                    and_(
-                        ProviderModel.name == request.name,
-                        ProviderModel.organization_id == org_id,
-                        ProviderModel.is_deleted == True,
-                    )
-                )
-            else:
-                stmt = select(ProviderModel).where(
-                    and_(
-                        ProviderModel.name == request.name,
-                        ProviderModel.organization_id.is_(None),
-                        ProviderModel.is_deleted == True,
-                    )
-                )
+            )
             result = await session.execute(stmt)
-            deleted_provider = result.scalar_one_or_none()
+            existing_providers = result.scalars().all()
+
+            # Check if there's a soft-deleted provider to restore
+            deleted_provider = None
+            for p in existing_providers:
+                if p.is_deleted:
+                    deleted_provider = p
+                    break
+                elif not p.is_deleted:
+                    # Found an active provider with the same name
+                    raise UniqueConstraintViolationError(
+                        f"Provider with name '{request.name}' already exists in your organization."
+                    )
 
             if deleted_provider:
                 # Restore the soft-deleted provider and update its fields
                 logger.info(f"Restoring soft-deleted provider '{request.name}' with id: {deleted_provider.id}")
                 deleted_provider.is_deleted = False
                 deleted_provider.provider_type = request.provider_type
-                deleted_provider.provider_category = ProviderCategory.byok if is_byok else ProviderCategory.base
+                deleted_provider.provider_category = ProviderCategory.byok  # Memos: always byok
                 deleted_provider.base_url = request.base_url
                 deleted_provider.region = request.region
                 deleted_provider.api_version = request.api_version
@@ -100,29 +78,24 @@ class ProviderManager:
                 await deleted_provider.update_async(session, actor=actor)
                 provider_pydantic = deleted_provider.to_pydantic()
 
-                # For BYOK providers, automatically sync available models
-                if is_byok:
-                    await self._sync_default_models_for_provider(provider_pydantic, actor)
+                # Automatically sync available models
+                await self._sync_default_models_for_provider(provider_pydantic, actor)
 
                 return provider_pydantic
 
-            # Create provider with the appropriate category
+            # Create new provider - Memos: all providers are BYOK type
             provider_data = request.model_dump()
 
-            # Unset deprecated api_key and access_key as to not write plaintext values, api_key_enc and access_key_enc will be set below
+            # Unset deprecated api_key and access_key as to not write plaintext values
             provider_data.pop("api_key", None)
             provider_data.pop("access_key", None)
 
-            provider_data["provider_category"] = ProviderCategory.byok if is_byok else ProviderCategory.base
+            # Memos: All providers are BYOK type
+            provider_data["provider_category"] = ProviderCategory.byok
             provider = PydanticProvider(**provider_data)
 
-            # if provider.name == provider.provider_type.value:
-            #     raise ValueError("Provider name must be unique and different from provider type")
-
-            # Only assign organization id for non-base providers
-            # Base providers should be globally accessible (org_id = None)
-            if is_byok:
-                provider.organization_id = actor.organization_id
+            # Memos: All providers have an organization_id
+            provider.organization_id = actor.organization_id
 
             # Lazily create the provider id prior to persistence
             provider.resolve_identifier()
@@ -137,9 +110,8 @@ class ProviderManager:
             await new_provider.create_async(session, actor=actor)
             provider_pydantic = new_provider.to_pydantic()
 
-            # For BYOK providers, automatically sync available models
-            if is_byok:
-                await self._sync_default_models_for_provider(provider_pydantic, actor)
+            # Automatically sync available models
+            await self._sync_default_models_for_provider(provider_pydantic, actor)
 
             return provider_pydantic
 
@@ -205,37 +177,34 @@ class ProviderManager:
     @raise_on_invalid_id(param_name="provider_id", expected_prefix=PrimitiveType.PROVIDER)
     @trace_method
     async def delete_provider_by_id_async(self, provider_id: str, actor: PydanticUser):
-        """Delete a provider and its associated models."""
+        """Delete a provider and its associated models.
+
+        Memos: Hard delete - permanently removes the provider and its models from the database.
+        This allows reuse of provider names after deletion.
+        """
         async with db_registry.async_session() as session:
-            # Clear api key field
+            # Get the provider (including soft-deleted ones)
             existing_provider = await ProviderModel.read_async(
-                db_session=session, identifier=provider_id, actor=actor, check_is_deleted=True
+                db_session=session, identifier=provider_id, actor=actor, check_is_deleted=False
             )
-            existing_provider.api_key_enc = None
-            existing_provider.access_key_enc = None
 
-            # Only accessing these deprecated fields to clear, which may trigger a warning
-            existing_provider.api_key = None
-            existing_provider.access_key = None
+            logger.info("Hard deleting provider with id: %s, name: %s", provider_id, existing_provider.name)
 
-            logger.info("Soft deleting provider with id: %s", provider_id)
+            # Hard delete all models associated with this provider using raw SQL
+            # This bypasses the soft delete mechanism
+            from sqlalchemy import delete as sql_delete
 
-            await existing_provider.update_async(session, actor=actor)
+            # Delete provider models (hard delete)
+            delete_models_stmt = sql_delete(ProviderModelORM).where(ProviderModelORM.provider_id == provider_id)
+            await session.execute(delete_models_stmt)
 
-            # Soft delete all models associated with this provider
-            provider_models = await ProviderModelORM.list_async(
-                db_session=session,
-                provider_id=provider_id,
-                check_is_deleted=True,
-            )
-            for model in provider_models:
-                await model.delete_async(session, actor=actor)
+            # Delete the provider itself (hard delete)
+            delete_provider_stmt = sql_delete(ProviderModel).where(ProviderModel.id == provider_id)
+            await session.execute(delete_provider_stmt)
 
-            # Soft delete in provider table
-            await existing_provider.delete_async(session, actor=actor)
+            await session.commit()
 
-            # context manager now handles commits
-            # await session.commit()
+            logger.info("Provider '%s' (id: %s) has been permanently deleted", existing_provider.name, provider_id)
 
     @enforce_types
     @trace_method

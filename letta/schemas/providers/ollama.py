@@ -20,7 +20,7 @@ class OllamaProvider(OpenAIProvider):
     """
 
     provider_type: Literal[ProviderType.ollama] = Field(ProviderType.ollama, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field(..., description="Base URL for the Ollama API.")
     api_key: str | None = Field(None, description="API key for the Ollama API (default: `None`).")
     default_prompt_formatter: str = Field(

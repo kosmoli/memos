@@ -103,7 +103,7 @@ MODEL_LIST = [
 
 class AnthropicProvider(Provider):
     provider_type: Literal[ProviderType.anthropic] = Field(ProviderType.anthropic, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the Anthropic API.", deprecated=True)
     base_url: str = "https://api.anthropic.com/v1"
 

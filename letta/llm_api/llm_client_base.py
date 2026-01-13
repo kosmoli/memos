@@ -235,40 +235,32 @@ class LLMClientBase:
     def get_byok_overrides(self, llm_config: LLMConfig) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         """
         Returns the override key for the given llm config.
-        Only fetches API key from database for BYOK providers.
-        Base providers use environment variables directly.
-        """
-        api_key = None
-        # Only fetch API key from database for BYOK providers
-        # Base providers should always use environment variables
-        if llm_config.provider_category == ProviderCategory.byok:
-            from letta.services.provider_manager import ProviderManager
 
-            api_key = ProviderManager().get_override_key(llm_config.provider_name, actor=self.actor)
-            # If we got an empty string from the database, treat it as None
-            # so the client can fall back to environment variables or default behavior
-            if api_key == "":
-                api_key = None
+        Memos: All providers are BYOK type, so we always fetch from the database.
+        Falls back to environment variables if database doesn't have a key.
+        """
+        from letta.services.provider_manager import ProviderManager
+
+        api_key = ProviderManager().get_override_key(llm_config.provider_name, actor=self.actor)
+        # If we got an empty string from the database, treat it as None
+        if api_key == "":
+            api_key = None
 
         return api_key, None, None
 
     async def get_byok_overrides_async(self, llm_config: LLMConfig) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         """
         Returns the override key for the given llm config.
-        Only fetches API key from database for BYOK providers.
-        Base providers use environment variables directly.
-        """
-        api_key = None
-        # Only fetch API key from database for BYOK providers
-        # Base providers should always use environment variables
-        if llm_config.provider_category == ProviderCategory.byok:
-            from letta.services.provider_manager import ProviderManager
 
-            api_key = await ProviderManager().get_override_key_async(llm_config.provider_name, actor=self.actor)
-            # If we got an empty string from the database, treat it as None
-            # so the client can fall back to environment variables or default behavior
-            if api_key == "":
-                api_key = None
+        Memos: All providers are BYOK type, so we always fetch from the database.
+        Falls back to environment variables if database doesn't have a key.
+        """
+        from letta.services.provider_manager import ProviderManager
+
+        api_key = await ProviderManager().get_override_key_async(llm_config.provider_name, actor=self.actor)
+        # If we got an empty string from the database, treat it as None
+        if api_key == "":
+            api_key = None
 
         return api_key, None, None
 

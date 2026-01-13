@@ -15,7 +15,7 @@ from letta.schemas.providers.openai import OpenAIProvider
 
 class LMStudioOpenAIProvider(OpenAIProvider):
     provider_type: Literal[ProviderType.lmstudio_openai] = Field(ProviderType.lmstudio_openai, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field(..., description="Base URL for the LMStudio OpenAI API.")
     api_key: str | None = Field(None, description="API key for the LMStudio API.")
 

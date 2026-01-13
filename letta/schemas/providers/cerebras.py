@@ -24,7 +24,7 @@ class CerebrasProvider(OpenAIProvider):
     """
 
     provider_type: Literal[ProviderType.cerebras] = Field(ProviderType.cerebras, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field("https://api.cerebras.ai/v1", description="Base URL for the Cerebras API.")
     api_key: str | None = Field(None, description="API key for the Cerebras API.", deprecated=True)
 

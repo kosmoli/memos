@@ -20,7 +20,7 @@ from letta.schemas.providers.openai import OpenAIProvider
 
 class TogetherProvider(OpenAIProvider):
     provider_type: Literal[ProviderType.together] = Field(ProviderType.together, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = "https://api.together.xyz/v1"
     api_key: str | None = Field(None, description="API key for the Together API.", deprecated=True)
     default_prompt_formatter: Optional[str] = Field(

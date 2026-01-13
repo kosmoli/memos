@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 class BedrockProvider(Provider):
     provider_type: Literal[ProviderType.bedrock] = Field(ProviderType.bedrock, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     access_key: str = Field(..., description="AWS secret access key for Bedrock.")
     region: str = Field(..., description="AWS region for Bedrock")
 

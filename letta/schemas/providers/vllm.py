@@ -17,7 +17,7 @@ from letta.schemas.providers.base import Provider
 
 class VLLMProvider(Provider):
     provider_type: Literal[ProviderType.vllm] = Field(ProviderType.vllm, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field(..., description="Base URL for the vLLM API.")
     api_key: str | None = Field(None, description="API key for the vLLM API.")
     default_prompt_formatter: str | None = Field(

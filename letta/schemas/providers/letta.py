@@ -13,7 +13,7 @@ LETTA_EMBEDDING_ENDPOINT = "https://embeddings.letta.com/"
 
 class LettaProvider(Provider):
     provider_type: Literal[ProviderType.letta] = Field(ProviderType.letta, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field(LETTA_EMBEDDING_ENDPOINT, description="Base URL for the Letta API (used for embeddings).")
 
     async def list_llm_models_async(self) -> list[LLMConfig]:

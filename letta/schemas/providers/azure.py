@@ -29,7 +29,7 @@ class AzureProvider(Provider):
     LATEST_API_VERSION: ClassVar[str] = "2024-09-01-preview"
 
     provider_type: Literal[ProviderType.azure] = Field(ProviderType.azure, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     # Note: 2024-09-01-preview was set here until 2025-07-16.
     # set manually, see: https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation
     latest_api_version: str = "2025-04-01-preview"

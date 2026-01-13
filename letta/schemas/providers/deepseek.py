@@ -16,7 +16,7 @@ class DeepSeekProvider(OpenAIProvider):
     """
 
     provider_type: Literal[ProviderType.deepseek] = Field(ProviderType.deepseek, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.base, description="The category of the provider (base or byok)")
+    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field("https://api.deepseek.com/v1", description="Base URL for the DeepSeek API.")
     api_key: str | None = Field(None, description="API key for the DeepSeek API.", deprecated=True)
 
