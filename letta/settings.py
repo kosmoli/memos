@@ -205,6 +205,9 @@ cors_origins = [
     "http://localhost:8083",
     "http://localhost:3000",
     "http://localhost:4200",
+    "http://localhost:8080",  # Klui frontend
+    "http://38.175.200.93:8080",  # Klui frontend (remote)
+    "http://38.175.200.93:8283",  # Memos backend (remote)
 ]
 
 # attach the env_cors_origins to the cors_origins if it exists

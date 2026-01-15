@@ -21,7 +21,10 @@ services:
       timeout: 5s
       retries: 5
   letta_server:
-    image: letta/letta:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: memos/letta:local
     hostname: letta-server
     depends_on:
       letta_db:

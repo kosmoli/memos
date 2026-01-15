@@ -1505,16 +1505,12 @@ class BedrockProvider(Provider):
         from letta.llm_api.aws_bedrock import bedrock_get_model_list
 
         try:
-            # For BYOK providers, use the custom credentials
-                # If we can list models, the credentials are valid
-                bedrock_get_model_list(
-                    region_name=self.region,
-                    access_key_id=self.access_key,
-                    secret_access_key=self.api_key,  # api_key stores the secret access key
-                )
-            else:
-                # For base providers, use default credentials
-                bedrock_get_model_list(region_name=self.region)
+            # If we can list models, the credentials are valid
+            bedrock_get_model_list(
+                region_name=self.region,
+                access_key_id=self.access_key,
+                secret_access_key=self.api_key,  # api_key stores the secret access key
+            )
         except Exception as e:
             raise LLMAuthenticationError(message=f"Failed to authenticate with Bedrock: {e}")
 
