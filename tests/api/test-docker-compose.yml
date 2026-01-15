@@ -1,0 +1,63 @@
+services:
+  # Memos Server
+  memos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: memos-test
+    ports:
+      - "8283:8283"
+    environment:
+      - LETTA_ENVIRONMENT=DEV
+      - LETTA_PG_URI=postgresql://postgres:postgres@postgres:5432/letta
+      - LETTA_REDIS_HOST=redis
+      - HOST=0.0.0.0
+      - PORT=8283
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - memos-test-net
+
+  # PostgreSQL with pgvector
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: memos-postgres-test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    ports:
+      - '15432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: letta
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - memos-test-net
+
+  # Redis
+  redis:
+    image: redis:alpine
+    container_name: memos-redis-test
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep PONG']
+      interval: 2s
+      timeout: 3s
+      retries: 10
+    ports:
+      - '16379:6379'
+    networks:
+      - memos-test-net
+
+volumes:
+  postgres-data:
+
+networks:
+  memos-test-net:
+    driver: bridge

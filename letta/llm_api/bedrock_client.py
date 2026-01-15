@@ -6,7 +6,7 @@ from aioboto3.session import Session
 from letta.llm_api.anthropic_client import AnthropicClient
 from letta.log import get_logger
 from letta.otel.tracing import trace_method
-from letta.schemas.enums import AgentType, ProviderCategory
+from letta.schemas.enums import AgentType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.message import Message as PydanticMessage
 from letta.services.provider_manager import ProviderManager
@@ -17,16 +17,15 @@ logger = get_logger(__name__)
 
 class BedrockClient(AnthropicClient):
     async def get_byok_overrides_async(self, llm_config: LLMConfig) -> tuple[str, str, str]:
-        override_access_key_id, override_secret_access_key, override_default_region = None, None, None
-        if llm_config.provider_category == ProviderCategory.byok:
-            (
-                override_access_key_id,
-                override_secret_access_key,
-                override_default_region,
-            ) = await ProviderManager().get_bedrock_credentials_async(
-                llm_config.provider_name,
-                actor=self.actor,
-            )
+        # Memos: All providers are BYOK, always get credentials from provider
+        (
+            override_access_key_id,
+            override_secret_access_key,
+            override_default_region,
+        ) = await ProviderManager().get_bedrock_credentials_async(
+            llm_config.provider_name,
+            actor=self.actor,
+        )
         return override_access_key_id, override_secret_access_key, override_default_region
 
     @trace_method

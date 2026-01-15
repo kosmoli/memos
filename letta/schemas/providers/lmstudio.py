@@ -8,14 +8,14 @@ from pydantic import Field
 
 from letta.constants import DEFAULT_EMBEDDING_CHUNK_SIZE
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.openai import OpenAIProvider
 
 
 class LMStudioOpenAIProvider(OpenAIProvider):
     provider_type: Literal[ProviderType.lmstudio_openai] = Field(ProviderType.lmstudio_openai, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field(..., description="Base URL for the LMStudio OpenAI API.")
     api_key: str | None = Field(None, description="API key for the LMStudio API.")
 
@@ -64,7 +64,6 @@ class LMStudioOpenAIProvider(OpenAIProvider):
                     max_tokens=self.get_default_max_output_tokens(model_name),
                     compatibility_type=compatibility_type,
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
 

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from letta.schemas.embedding_config import EmbeddingConfig
 from letta.schemas.embedding_config_overrides import EMBEDDING_HANDLE_OVERRIDES
-from letta.schemas.enums import PrimitiveType, ProviderCategory, ProviderType
+from letta.schemas.enums import PrimitiveType, ProviderType
 from letta.schemas.letta_base import LettaBase
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.llm_config_overrides import LLM_HANDLE_OVERRIDES
@@ -24,7 +24,6 @@ class Provider(ProviderBase):
     id: str | None = Field(None, description="The id of the provider, lazily created by the database manager.")
     name: str = Field(..., description="The name of the provider")
     provider_type: ProviderType = Field(..., description="The type of the provider")
-    provider_category: ProviderCategory = Field(..., description="The category of the provider (base or byok)")
     api_key: str | None = Field(None, description="API key or secret key used for requests to the provider.", deprecated=True)
     base_url: str | None = Field(None, description="Base URL for the provider.")
     access_key: str | None = Field(None, description="Access key used for requests to the provider.", deprecated=True)

@@ -13,14 +13,14 @@ from pydantic import Field
 from letta.constants import MIN_CONTEXT_WINDOW
 from letta.errors import ErrorCode, LLMAuthenticationError
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.openai import OpenAIProvider
 
 
 class TogetherProvider(OpenAIProvider):
     provider_type: Literal[ProviderType.together] = Field(ProviderType.together, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = "https://api.together.xyz/v1"
     api_key: str | None = Field(None, description="API key for the Together API.", deprecated=True)
     default_prompt_formatter: Optional[str] = Field(
@@ -86,7 +86,6 @@ class TogetherProvider(OpenAIProvider):
                     context_window=context_window_size,
                     handle=self.get_handle(model_name),
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
 

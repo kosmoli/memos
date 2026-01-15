@@ -8,7 +8,7 @@ import anthropic
 from pydantic import Field
 
 from letta.errors import ErrorCode, LLMAuthenticationError, LLMError
-from letta.schemas.enums import ProviderCategory, ProviderType
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.base import Provider
 from letta.settings import model_settings
@@ -103,7 +103,6 @@ MODEL_LIST = [
 
 class AnthropicProvider(Provider):
     provider_type: Literal[ProviderType.anthropic] = Field(ProviderType.anthropic, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the Anthropic API.", deprecated=True)
     base_url: str = "https://api.anthropic.com/v1"
 
@@ -218,7 +217,6 @@ class AnthropicProvider(Provider):
                     put_inner_thoughts_in_kwargs=inner_thoughts_in_kwargs,
                     max_tokens=max_tokens,
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
         return configs

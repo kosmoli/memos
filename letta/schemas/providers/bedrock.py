@@ -8,7 +8,7 @@ from typing import Literal
 from pydantic import Field
 
 from letta.log import get_logger
-from letta.schemas.enums import ProviderCategory, ProviderType
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.base import Provider
 
@@ -17,7 +17,6 @@ logger = get_logger(__name__)
 
 class BedrockProvider(Provider):
     provider_type: Literal[ProviderType.bedrock] = Field(ProviderType.bedrock, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     access_key: str = Field(..., description="AWS secret access key for Bedrock.")
     region: str = Field(..., description="AWS region for Bedrock")
 
@@ -47,13 +46,8 @@ class BedrockProvider(Provider):
         from letta.errors import LLMAuthenticationError
 
         try:
-            # For BYOK providers, use the custom credentials
-            if self.provider_category == ProviderCategory.byok:
-                # If we can list models, the credentials are valid
-                await self.bedrock_get_model_list_async()
-            else:
-                # For base providers, use default credentials
-                bedrock_get_model_list(region_name=self.region)
+            # Memos: All providers are BYOK, use custom credentials
+            await self.bedrock_get_model_list_async()
         except Exception as e:
             raise LLMAuthenticationError(message=f"Failed to authenticate with Bedrock: {e}")
 
@@ -72,7 +66,6 @@ class BedrockProvider(Provider):
                     handle=self.get_handle(model_arn),
                     max_tokens=self.get_default_max_output_tokens(model_arn),
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
 

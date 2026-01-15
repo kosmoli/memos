@@ -2,14 +2,14 @@ from typing import Literal
 
 from pydantic import Field
 
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.openai import OpenAIProvider
 
 
 class GroqProvider(OpenAIProvider):
     provider_type: Literal[ProviderType.groq] = Field(ProviderType.groq, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = "https://api.groq.com/openai/v1"
     api_key: str | None = Field(None, description="API key for the Groq API.", deprecated=True)
 
@@ -31,7 +31,6 @@ class GroqProvider(OpenAIProvider):
                     handle=self.get_handle(model["id"]),
                     max_tokens=self.get_default_max_output_tokens(model["id"]),
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
         return configs

@@ -2,14 +2,14 @@ from typing import Literal
 
 from pydantic import Field
 
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.base import Provider
 
 
 class MistralProvider(Provider):
     provider_type: Literal[ProviderType.mistral] = Field(ProviderType.mistral, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the Mistral API.", deprecated=True)
     base_url: str = "https://api.mistral.ai/v1"
 
@@ -36,7 +36,6 @@ class MistralProvider(Provider):
                         handle=self.get_handle(model["id"]),
                         max_tokens=self.get_default_max_output_tokens(model["id"]),
                         provider_name=self.name,
-                        provider_category=self.provider_category,
                     )
                 )
 

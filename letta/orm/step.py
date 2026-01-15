@@ -41,7 +41,6 @@ class Step(SqlalchemyBase, ProjectMixin):
     )
     agent_id: Mapped[Optional[str]] = mapped_column(None, nullable=True, doc="The name of the model used for this step.")
     provider_name: Mapped[Optional[str]] = mapped_column(None, nullable=True, doc="The name of the provider used for this step.")
-    provider_category: Mapped[Optional[str]] = mapped_column(None, nullable=True, doc="The category of the provider used for this step.")
     model: Mapped[Optional[str]] = mapped_column(None, nullable=True, doc="The name of the model used for this step.")
     model_endpoint: Mapped[Optional[str]] = mapped_column(None, nullable=True, doc="The model endpoint url used for this step.")
     context_window_limit: Mapped[Optional[int]] = mapped_column(

@@ -6,7 +6,8 @@ logger = get_logger(__name__)
 
 from pydantic import Field
 
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.openai import OpenAIProvider
 
@@ -24,7 +25,6 @@ class CerebrasProvider(OpenAIProvider):
     """
 
     provider_type: Literal[ProviderType.cerebras] = Field(ProviderType.cerebras, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field("https://api.cerebras.ai/v1", description="Base URL for the Cerebras API.")
     api_key: str | None = Field(None, description="API key for the Cerebras API.", deprecated=True)
 
@@ -77,7 +77,6 @@ class CerebrasProvider(OpenAIProvider):
                     max_tokens=self.get_default_max_output_tokens(model_name),
                     put_inner_thoughts_in_kwargs=put_inner_thoughts_in_kwargs,
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
 

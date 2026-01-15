@@ -2,7 +2,8 @@ from typing import Literal
 
 from pydantic import Field
 
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.openai import OpenAIProvider
 
@@ -16,7 +17,6 @@ class DeepSeekProvider(OpenAIProvider):
     """
 
     provider_type: Literal[ProviderType.deepseek] = Field(ProviderType.deepseek, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field("https://api.deepseek.com/v1", description="Base URL for the DeepSeek API.")
     api_key: str | None = Field(None, description="API key for the DeepSeek API.", deprecated=True)
 
@@ -58,7 +58,6 @@ class DeepSeekProvider(OpenAIProvider):
                     max_tokens=self.get_default_max_output_tokens(model_name),
                     put_inner_thoughts_in_kwargs=put_inner_thoughts_in_kwargs,
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
 

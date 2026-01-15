@@ -8,7 +8,7 @@ from letta.orm.provider import Provider as ProviderModel
 from letta.orm.provider_model import ProviderModel as ProviderModelORM
 from letta.otel.tracing import trace_method
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import PrimitiveType, ProviderCategory, ProviderType
+from letta.schemas.enums import PrimitiveType, ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.provider_model import ProviderModel as PydanticProviderModel
 from letta.schemas.providers import Provider as PydanticProvider, ProviderCheck, ProviderCreate, ProviderUpdate
@@ -25,17 +25,8 @@ class ProviderManager:
     @enforce_types
     @trace_method
     async def create_provider_async(self, request: ProviderCreate, actor: PydanticUser) -> PydanticProvider:
-        """Create a new provider if it doesn't already exist.
-
-        Memos: Unified provider system - all providers are BYOK type and stored in the database.
-
-        Args:
-            request: ProviderCreate object with provider details
-            actor: User creating the provider
-        """
         async with db_registry.async_session() as session:
-            # Memos: Check if there's a provider with the same name (including soft-deleted)
-            # for the current organization
+            # Check for existing providers with the same name in this organization
             stmt = select(ProviderModel).where(
                 and_(
                     ProviderModel.name == request.name,
@@ -45,7 +36,6 @@ class ProviderManager:
             result = await session.execute(stmt)
             existing_providers = result.scalars().all()
 
-            # Check if there's a soft-deleted provider to restore
             deleted_provider = None
             for p in existing_providers:
                 if p.is_deleted:
@@ -57,44 +47,16 @@ class ProviderManager:
                         f"Provider with name '{request.name}' already exists in your organization."
                     )
 
-            if deleted_provider:
-                # Restore the soft-deleted provider and update its fields
-                logger.info(f"Restoring soft-deleted provider '{request.name}' with id: {deleted_provider.id}")
-                deleted_provider.is_deleted = False
-                deleted_provider.provider_type = request.provider_type
-                deleted_provider.provider_category = ProviderCategory.byok  # Memos: always byok
-                deleted_provider.base_url = request.base_url
-                deleted_provider.region = request.region
-                deleted_provider.api_version = request.api_version
-
-                # Update encrypted fields (async to avoid blocking event loop)
-                if request.api_key is not None:
-                    api_key_secret = await Secret.from_plaintext_async(request.api_key)
-                    deleted_provider.api_key_enc = api_key_secret.get_encrypted()
-                if request.access_key is not None:
-                    access_key_secret = await Secret.from_plaintext_async(request.access_key)
-                    deleted_provider.access_key_enc = access_key_secret.get_encrypted()
-
-                await deleted_provider.update_async(session, actor=actor)
-                provider_pydantic = deleted_provider.to_pydantic()
-
-                # Automatically sync available models
-                await self._sync_default_models_for_provider(provider_pydantic, actor)
-
-                return provider_pydantic
-
-            # Create new provider - Memos: all providers are BYOK type
+            # Create new provider
             provider_data = request.model_dump()
 
             # Unset deprecated api_key and access_key as to not write plaintext values
             provider_data.pop("api_key", None)
             provider_data.pop("access_key", None)
 
-            # Memos: All providers are BYOK type
-            provider_data["provider_category"] = ProviderCategory.byok
             provider = PydanticProvider(**provider_data)
 
-            # Memos: All providers have an organization_id
+            # All providers have an organization_id
             provider.organization_id = actor.organization_id
 
             # Lazily create the provider id prior to persistence
@@ -179,7 +141,7 @@ class ProviderManager:
     async def delete_provider_by_id_async(self, provider_id: str, actor: PydanticUser):
         """Delete a provider and its associated models.
 
-        Memos: Hard delete - permanently removes the provider and its models from the database.
+        Hard delete - permanently removes the provider and its models from the database.
         This allows reuse of provider names after deletion.
         """
         async with db_registry.async_session() as session:
@@ -213,7 +175,6 @@ class ProviderManager:
         actor: PydanticUser,
         name: Optional[str] = None,
         provider_type: Optional[ProviderType] = None,
-        provider_category: Optional[List[ProviderCategory]] = None,
         before: Optional[str] = None,
         after: Optional[str] = None,
         limit: Optional[int] = 50,
@@ -241,27 +202,7 @@ class ProviderManager:
                 **filter_kwargs,
             )
 
-            # Get global providers (base providers with organization_id=NULL)
-            global_filter_kwargs = {**filter_kwargs, "organization_id": None}
-            global_providers = await ProviderModel.list_async(
-                db_session=session,
-                before=before,
-                after=after,
-                limit=limit,
-                ascending=ascending,
-                check_is_deleted=True,
-                **global_filter_kwargs,
-            )
-
-            # Combine both lists
-            all_providers = []
-            if not provider_category:
-                all_providers = org_providers + global_providers
-            else:
-                if ProviderCategory.byok in provider_category:
-                    all_providers += org_providers
-                if ProviderCategory.base in provider_category:
-                    all_providers += global_providers
+            all_providers = org_providers  # Memos: All providers are org-specific
 
             # Remove deprecated api_key and access_key fields from the response
             for provider in all_providers:
@@ -430,7 +371,6 @@ class ProviderManager:
             name=provider_check.provider_type.value,
             provider_type=provider_check.provider_type,
             api_key_enc=Secret.from_plaintext(provider_check.api_key),
-            provider_category=ProviderCategory.byok,
             access_key_enc=Secret.from_plaintext(provider_check.access_key) if provider_check.access_key else None,
             region=provider_check.region,
             base_url=provider_check.base_url,
@@ -479,23 +419,23 @@ class ProviderManager:
                 return
 
             # Create provider instance with necessary parameters
-            api_key = await provider.api_key_enc.get_plaintext_async() if provider.api_key_enc else None
-            access_key = await provider.access_key_enc.get_plaintext_async() if provider.access_key_enc else None
+            # Note: We need to set api_key_enc directly since the provider uses encrypted fields
             kwargs = {
                 "name": provider.name,
-                "api_key": api_key,
-                "provider_category": provider.provider_category,
             }
             if provider.base_url:
                 kwargs["base_url"] = provider.base_url
-            if access_key:
-                kwargs["access_key"] = access_key
             if provider.region:
                 kwargs["region"] = provider.region
             if provider.api_version:
                 kwargs["api_version"] = provider.api_version
 
+            # Set encrypted credentials directly on the instance after creation
             provider_instance = provider_class(**kwargs)
+            if provider.api_key_enc:
+                provider_instance.api_key_enc = provider.api_key_enc
+            if provider.access_key_enc:
+                provider_instance.access_key_enc = provider.access_key_enc
 
             # Query the provider's API for available models
             llm_models = await provider_instance.list_llm_models_async()
@@ -505,7 +445,6 @@ class ProviderManager:
             for model in llm_models:
                 model.provider_name = provider.name
                 model.handle = f"{provider.name}/{model.model}"
-                model.provider_category = provider.provider_category
 
             for model in embedding_models:
                 model.handle = f"{provider.name}/{model.embedding_model}"
@@ -519,67 +458,6 @@ class ProviderManager:
             logger.error(f"Failed to sync models for provider '{provider.name}': {e}")
             # Don't fail provider creation if model sync fails
 
-    @enforce_types
-    @trace_method
-    async def sync_base_providers(self, base_providers: list[PydanticProvider], actor: PydanticUser) -> None:
-        """
-        Sync base providers (from environment) to database (idempotent).
-
-        This method is safe to call from multiple pods simultaneously as it:
-        1. Checks if provider exists before creating
-        2. Handles race conditions with UniqueConstraintViolationError
-        3. Only creates providers that don't exist (no updates to avoid conflicts)
-
-        Args:
-            base_providers: List of base provider instances from environment variables
-            actor: User actor for database operations
-        """
-        from letta.log import get_logger
-        from letta.orm.errors import UniqueConstraintViolationError
-
-        logger = get_logger(__name__)
-        logger.info(f"Syncing {len(base_providers)} base providers to database")
-
-        async with db_registry.async_session() as session:
-            for provider in base_providers:
-                try:
-                    # Check if base provider already exists (base providers have organization_id=None)
-                    existing_providers = await ProviderModel.list_async(
-                        db_session=session,
-                        name=provider.name,
-                        organization_id=None,  # Base providers are global
-                        limit=1,
-                    )
-
-                    if existing_providers:
-                        logger.debug(f"Base provider '{provider.name}' already exists in database, skipping")
-                        continue
-
-                    # Convert Provider to ProviderCreate
-                    # NOTE: Do NOT store API keys for base providers in the database.
-                    # Base providers should always use environment variables for API keys.
-                    # This ensures keys stay in sync with env vars and aren't duplicated in DB.
-                    provider_create = ProviderCreate(
-                        name=provider.name,
-                        provider_type=provider.provider_type,
-                        api_key="",  # Base providers use env vars, not DB-stored keys
-                        access_key=None,
-                        region=provider.region,
-                        base_url=provider.base_url,
-                        api_version=provider.api_version,
-                    )
-
-                    # Create the provider in the database as a base provider
-                    await self.create_provider_async(request=provider_create, actor=actor, is_byok=False)
-                    logger.info(f"Successfully initialized base provider '{provider.name}' to database")
-
-                except UniqueConstraintViolationError:
-                    # Race condition: another pod created this provider between our check and create
-                    # This is expected and safe - just log and continue
-                    logger.debug(f"Provider '{provider.name}' was created by another pod, skipping")
-                except Exception as e:
-                    # Log error but don't fail startup - provider initialization is not critical
-                    logger.error(f"Failed to sync provider '{provider.name}' to database: {e}", exc_info=True)
 
     @enforce_types
     @trace_method
@@ -756,6 +634,10 @@ class ProviderManager:
                 else:
                     logger.info(f"    Embedding model {embedding_config.handle} already exists (ID: {existing[0].id}), skipping")
 
+            # Commit all the new models (LLM and embedding) to the database
+            await session.commit()
+            logger.info(f"=== Successfully synced models for provider '{provider.name}' ===")
+
     @enforce_types
     @trace_method
     async def get_model_by_handle_async(
@@ -895,7 +777,6 @@ class ProviderManager:
                 byok_providers = await self.list_providers_async(
                     actor=actor,
                     name=provider_name,
-                    provider_category=[ProviderCategory.byok],
                 )
                 if byok_providers:
                     # Fetch models dynamically from BYOK provider
@@ -930,7 +811,6 @@ class ProviderManager:
             context_window=model.max_context_window or 16384,  # Default if not set
             handle=model.handle,
             provider_name=provider.name,
-            provider_category=provider.provider_category,
             max_tokens=max_tokens,
         )
 
@@ -968,7 +848,6 @@ class ProviderManager:
                 byok_providers = await self.list_providers_async(
                     actor=actor,
                     name=provider_name,
-                    provider_category=[ProviderCategory.byok],
                 )
                 if byok_providers:
                     # Fetch models dynamically from BYOK provider

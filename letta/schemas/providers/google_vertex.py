@@ -4,7 +4,8 @@ from pydantic import Field
 
 from letta.constants import DEFAULT_EMBEDDING_CHUNK_SIZE
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.base import Provider
 
@@ -12,7 +13,6 @@ from letta.schemas.providers.base import Provider
 # TODO (cliandy): GoogleVertexProvider uses hardcoded models vs Gemini fetches from API
 class GoogleVertexProvider(Provider):
     provider_type: Literal[ProviderType.google_vertex] = Field(ProviderType.google_vertex, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     google_cloud_project: str = Field(..., description="GCP project ID for the Google Vertex API.")
     google_cloud_location: str = Field(..., description="GCP region for the Google Vertex API.")
 
@@ -36,7 +36,6 @@ class GoogleVertexProvider(Provider):
                     handle=self.get_handle(model),
                     max_tokens=self.get_default_max_output_tokens(model),
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
         return configs

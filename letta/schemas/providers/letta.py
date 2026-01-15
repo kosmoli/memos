@@ -4,7 +4,7 @@ from pydantic import Field
 
 from letta.constants import DEFAULT_EMBEDDING_CHUNK_SIZE, LETTA_MODEL_ENDPOINT
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.base import Provider
 
@@ -13,7 +13,6 @@ LETTA_EMBEDDING_ENDPOINT = "https://embeddings.letta.com/"
 
 class LettaProvider(Provider):
     provider_type: Literal[ProviderType.letta] = Field(ProviderType.letta, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field(LETTA_EMBEDDING_ENDPOINT, description="Base URL for the Letta API (used for embeddings).")
 
     async def list_llm_models_async(self) -> list[LLMConfig]:
@@ -26,7 +25,6 @@ class LettaProvider(Provider):
                 handle=self.get_handle("letta-free"),
                 max_tokens=self.get_default_max_output_tokens("letta-free"),
                 provider_name=self.name,
-                provider_category=self.provider_category,
             )
         ]
 

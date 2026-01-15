@@ -9,14 +9,14 @@ from pydantic import Field
 
 from letta.constants import DEFAULT_EMBEDDING_CHUNK_SIZE, LLM_MAX_CONTEXT_WINDOW
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.base import Provider
 
 
 class GoogleAIProvider(Provider):
     provider_type: Literal[ProviderType.google_ai] = Field(ProviderType.google_ai, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the Google AI API.", deprecated=True)
     base_url: str = "https://generativelanguage.googleapis.com"
 
@@ -58,7 +58,6 @@ class GoogleAIProvider(Provider):
                 handle=self.get_handle(model),
                 max_tokens=self.get_default_max_output_tokens(model),
                 provider_name=self.name,
-                provider_category=self.provider_category,
             )
 
         # Execute all config creation tasks concurrently

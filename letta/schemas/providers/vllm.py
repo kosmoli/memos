@@ -10,14 +10,14 @@ from typing import Literal
 from pydantic import Field
 
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.base import Provider
 
 
 class VLLMProvider(Provider):
     provider_type: Literal[ProviderType.vllm] = Field(ProviderType.vllm, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field(..., description="Base URL for the vLLM API.")
     api_key: str | None = Field(None, description="API key for the vLLM API.")
     default_prompt_formatter: str | None = Field(
@@ -47,7 +47,6 @@ class VLLMProvider(Provider):
                     handle=self.get_handle(model_name, base_name=self.handle_base) if self.handle_base else self.get_handle(model_name),
                     max_tokens=self.get_default_max_output_tokens(model_name),
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
 

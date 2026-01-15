@@ -6,7 +6,8 @@ from pydantic import Field
 from letta.constants import DEFAULT_CONTEXT_WINDOW, DEFAULT_EMBEDDING_CHUNK_SIZE
 from letta.log import get_logger
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.openai import OpenAIProvider
 
@@ -20,7 +21,6 @@ class OllamaProvider(OpenAIProvider):
     """
 
     provider_type: Literal[ProviderType.ollama] = Field(ProviderType.ollama, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     base_url: str = Field(..., description="Base URL for the Ollama API.")
     api_key: str | None = Field(None, description="API key for the Ollama API (default: `None`).")
     default_prompt_formatter: str = Field(
@@ -115,7 +115,6 @@ class OllamaProvider(OpenAIProvider):
                 #     # Ollama specific
                 #     handle=self.get_handle(model_name),
                 #     provider_name=self.name,
-                #     provider_category=self.provider_category,
                 # )
                 # New "trust Ollama" version w/ pure OpenAI proxy
                 LLMConfig(
@@ -127,7 +126,6 @@ class OllamaProvider(OpenAIProvider):
                     handle=self.get_handle(model_name),
                     max_tokens=self.get_default_max_output_tokens(model_name),
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                     # put_inner_thoughts_in_kwargs=True,
                     # enable_reasoner=supports_thinking,
                 )

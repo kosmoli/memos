@@ -23,7 +23,6 @@ from letta.local_llm.constants import INNER_THOUGHTS_KWARG
 from letta.local_llm.utils import num_tokens_from_functions, num_tokens_from_messages
 from letta.orm.user import User
 from letta.otel.tracing import log_event, trace_method
-from letta.schemas.enums import ProviderCategory
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.message import Message
 from letta.schemas.openai.chat_completion_response import ChatCompletionResponse
@@ -172,21 +171,22 @@ def create(
         if model_settings.openai_api_key is None and llm_config.model_endpoint == "https://api.openai.com/v1":
             # only is a problem if we are *not* using an openai proxy
             raise LettaConfigurationError(message="OpenAI key is missing from letta config file", missing_fields=["openai_api_key"])
-        elif llm_config.provider_category == ProviderCategory.byok:
+        else:
+            # Memos: All providers are BYOK, get credentials from provider
             from letta.services.provider_manager import ProviderManager
             from letta.services.user_manager import UserManager
 
             actor = UserManager().get_user_or_default(user_id=user_id)
             api_key = ProviderManager().get_override_key(llm_config.provider_name, actor=actor)
-        else:
-            # Prefer OpenRouter key when targeting OpenRouter
-            is_openrouter = (llm_config.model_endpoint and "openrouter.ai" in llm_config.model_endpoint) or (
-                llm_config.provider_name == "openrouter"
-            )
-            if is_openrouter:
-                api_key = model_settings.openrouter_api_key or os.environ.get("OPENROUTER_API_KEY")
-            if not is_openrouter or not api_key:
-                api_key = model_settings.openai_api_key or os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                # Fallback to environment variables
+                is_openrouter = (llm_config.model_endpoint and "openrouter.ai" in llm_config.model_endpoint) or (
+                    llm_config.provider_name == "openrouter"
+                )
+                if is_openrouter:
+                    api_key = model_settings.openrouter_api_key or os.environ.get("OPENROUTER_API_KEY")
+                if not is_openrouter or not api_key:
+                    api_key = model_settings.openai_api_key or os.environ.get("OPENAI_API_KEY")
             # the openai python client requires some API key string
             api_key = api_key or "DUMMY_API_KEY"
 

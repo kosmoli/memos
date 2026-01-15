@@ -6,7 +6,8 @@ logger = get_logger(__name__)
 
 from pydantic import Field
 
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.openai import OpenAIProvider
 
@@ -23,7 +24,6 @@ class ZAIProvider(OpenAIProvider):
     """Z.ai (ZhipuAI) provider - https://docs.z.ai/"""
 
     provider_type: Literal[ProviderType.zai] = Field(ProviderType.zai, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the Z.ai API.", deprecated=True)
     base_url: str = Field("https://api.z.ai/api/paas/v4/", description="Base URL for the Z.ai API.")
 
@@ -64,7 +64,6 @@ class ZAIProvider(OpenAIProvider):
                     handle=self.get_handle(model_name),
                     max_tokens=self.get_default_max_output_tokens(model_name),
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
 

@@ -10,7 +10,7 @@ from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from letta.errors import ErrorCode, LLMConnectionError, LLMError
 from letta.otel.tracing import log_event, trace_method
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import AgentType, ProviderCategory
+from letta.schemas.enums import AgentType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.message import Message
 from letta.schemas.openai.chat_completion_response import ChatCompletionResponse

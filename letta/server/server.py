@@ -45,7 +45,7 @@ from letta.schemas.block import Block, BlockUpdate, CreateBlock
 from letta.schemas.embedding_config import EmbeddingConfig
 
 # openai schemas
-from letta.schemas.enums import AgentType, JobStatus, MessageStreamStatus, ProviderCategory, ProviderType, SandboxType, ToolSourceType
+from letta.schemas.enums import AgentType, JobStatus, MessageStreamStatus, ProviderType, SandboxType, ToolSourceType
 from letta.schemas.environment_variables import SandboxEnvironmentVariableCreate
 from letta.schemas.group import GroupCreate, ManagerType, SleeptimeManager, VoiceSleeptimeManager
 from letta.schemas.job import Job, JobUpdate
@@ -211,133 +211,7 @@ class SyncServer(object):
         """Initialize the MCP clients (there may be multiple)"""
         self.mcp_clients: Dict[str, AsyncBaseMCPClient] = {}
 
-        # collect providers (always has Letta as a default)
-        from letta.constants import LETTA_MODEL_ENDPOINT
-
-        self._enabled_providers: List[Provider] = [LettaProvider(name="letta", base_url=LETTA_MODEL_ENDPOINT)]
-        if model_settings.openai_api_key:
-            self._enabled_providers.append(
-                OpenAIProvider(
-                    name="openai",
-                    api_key_enc=Secret.from_plaintext(model_settings.openai_api_key),
-                    base_url=model_settings.openai_api_base,
-                )
-            )
-        if model_settings.anthropic_api_key:
-            self._enabled_providers.append(
-                AnthropicProvider(
-                    name="anthropic",
-                    api_key_enc=Secret.from_plaintext(model_settings.anthropic_api_key),
-                )
-            )
-        if model_settings.ollama_base_url:
-            self._enabled_providers.append(
-                OllamaProvider(
-                    name="ollama",
-                    base_url=model_settings.ollama_base_url,
-                    default_prompt_formatter=model_settings.default_prompt_formatter,
-                )
-            )
-        if model_settings.gemini_api_key:
-            self._enabled_providers.append(
-                GoogleAIProvider(
-                    name="google_ai",
-                    api_key_enc=Secret.from_plaintext(model_settings.gemini_api_key),
-                )
-            )
-        if model_settings.google_cloud_location and model_settings.google_cloud_project:
-            self._enabled_providers.append(
-                GoogleVertexProvider(
-                    name="google_vertex",
-                    google_cloud_project=model_settings.google_cloud_project,
-                    google_cloud_location=model_settings.google_cloud_location,
-                )
-            )
-        if model_settings.azure_api_key and model_settings.azure_base_url:
-            assert model_settings.azure_api_version, "AZURE_API_VERSION is required"
-            self._enabled_providers.append(
-                AzureProvider(
-                    name="azure",
-                    api_key_enc=Secret.from_plaintext(model_settings.azure_api_key),
-                    base_url=model_settings.azure_base_url,
-                    api_version=model_settings.azure_api_version,
-                )
-            )
-        if model_settings.groq_api_key:
-            self._enabled_providers.append(
-                GroqProvider(
-                    name="groq",
-                    api_key_enc=Secret.from_plaintext(model_settings.groq_api_key),
-                )
-            )
-        if model_settings.together_api_key:
-            self._enabled_providers.append(
-                TogetherProvider(
-                    name="together",
-                    api_key_enc=Secret.from_plaintext(model_settings.together_api_key),
-                    default_prompt_formatter=model_settings.default_prompt_formatter,
-                )
-            )
-        if model_settings.vllm_api_base:
-            # vLLM exposes both a /chat/completions and a /completions endpoint
-            # NOTE: to use the /chat/completions endpoint, you need to specify extra flags on vLLM startup
-            # see: https://docs.vllm.ai/en/stable/features/tool_calling.html
-            # e.g. "... --enable-auto-tool-choice --tool-call-parser hermes"
-            self._enabled_providers.append(
-                VLLMProvider(
-                    name="vllm",
-                    base_url=model_settings.vllm_api_base,
-                    default_prompt_formatter=model_settings.default_prompt_formatter,
-                    handle_base=model_settings.vllm_handle_base,
-                )
-            )
-
-        if model_settings.aws_access_key_id and model_settings.aws_secret_access_key and model_settings.aws_default_region:
-            self._enabled_providers.append(
-                BedrockProvider(
-                    name="bedrock",
-                    region=model_settings.aws_default_region,
-                )
-            )
-        # Attempt to enable LM Studio by default
-        if model_settings.lmstudio_base_url:
-            # Auto-append v1 to the base URL
-            lmstudio_url = (
-                model_settings.lmstudio_base_url
-                if model_settings.lmstudio_base_url.endswith("/v1")
-                else model_settings.lmstudio_base_url + "/v1"
-            )
-            self._enabled_providers.append(LMStudioOpenAIProvider(name="lmstudio_openai", base_url=lmstudio_url))
-        if model_settings.deepseek_api_key:
-            self._enabled_providers.append(
-                DeepSeekProvider(
-                    name="deepseek",
-                    api_key_enc=Secret.from_plaintext(model_settings.deepseek_api_key),
-                )
-            )
-        if model_settings.xai_api_key:
-            self._enabled_providers.append(
-                XAIProvider(
-                    name="xai",
-                    api_key_enc=Secret.from_plaintext(model_settings.xai_api_key),
-                )
-            )
-        if model_settings.zai_api_key:
-            self._enabled_providers.append(
-                ZAIProvider(
-                    name="zai",
-                    api_key_enc=Secret.from_plaintext(model_settings.zai_api_key),
-                    base_url=model_settings.zai_base_url,
-                )
-            )
-        if model_settings.openrouter_api_key:
-            self._enabled_providers.append(
-                OpenRouterProvider(
-                    name=model_settings.openrouter_handle_base if model_settings.openrouter_handle_base else "openrouter",
-                    api_key_enc=Secret.from_plaintext(model_settings.openrouter_api_key),
-                )
-            )
-
+        
     async def init_async(self, init_with_default_org_and_user: bool = True):
         # Make default user and org
         if init_with_default_org_and_user:
@@ -345,12 +219,6 @@ class SyncServer(object):
             self.default_user = await self.user_manager.create_default_actor_async()
             print(f"Default user: {self.default_user} and org: {self.default_org}")
             await self.tool_manager.upsert_base_tools_async(actor=self.default_user)
-
-            # Sync environment-based providers to database (idempotent, safe for multi-pod startup)
-            await self.provider_manager.sync_base_providers(base_providers=self._enabled_providers, actor=self.default_user)
-
-            # Sync provider models to database
-            await self._sync_provider_models_async()
 
             # For OSS users, create a local sandbox config
             oss_default_user = await self.user_manager.get_default_actor_async()
@@ -388,64 +256,6 @@ class SyncServer(object):
                         force_recreate=True,
                     )
 
-    def _get_enabled_provider(self, provider_name: str) -> Optional[Provider]:
-        """Find and return an enabled provider by name.
-
-        Args:
-            provider_name: The name of the provider to find
-
-        Returns:
-            The matching enabled provider, or None if not found
-        """
-        for provider in self._enabled_providers:
-            if provider.name == provider_name:
-                return provider
-        return None
-
-    async def _sync_provider_models_async(self):
-        """Sync all provider models to database at startup."""
-        logger.info("Syncing provider models to database")
-
-        # Get persisted providers from database (they now have IDs)
-        persisted_providers = await self.provider_manager.list_providers_async(actor=self.default_user)
-
-        for persisted_provider in persisted_providers:
-            try:
-                # Find the matching enabled provider instance to call list_models on
-                enabled_provider = self._get_enabled_provider(persisted_provider.name)
-
-                if not enabled_provider:
-                    # Only delete base providers that are no longer enabled
-                    # BYOK providers are user-created and should not be automatically deleted
-                    if persisted_provider.provider_category == ProviderCategory.base:
-                        logger.info(f"Base provider {persisted_provider.name} is no longer enabled, deleting from database")
-                        try:
-                            await self.provider_manager.delete_provider_by_id_async(
-                                provider_id=persisted_provider.id, actor=self.default_user
-                            )
-                        except NoResultFound:
-                            # Provider was already deleted (race condition in multi-pod startup)
-                            logger.debug(f"Provider {persisted_provider.name} was already deleted, skipping")
-                    else:
-                        logger.debug(f"No enabled provider for BYOK provider {persisted_provider.name}, skipping model sync")
-                    continue
-
-                # Fetch models from provider
-                llm_models = await enabled_provider.list_llm_models_async()
-                embedding_models = await enabled_provider.list_embedding_models_async()
-
-                # Save to database with the persisted provider (which has an ID)
-                await self.provider_manager.sync_provider_models_async(
-                    provider=persisted_provider,
-                    llm_models=llm_models,
-                    embedding_models=embedding_models,
-                    organization_id=None,  # Global models
-                )
-                logger.info(
-                    f"Synced {len(llm_models)} LLM models and {len(embedding_models)} embedding models for provider {persisted_provider.name}"
-                )
-            except Exception as e:
-                logger.error(f"Failed to sync models for provider {persisted_provider.name}: {e}", exc_info=True)
 
     async def init_mcp_clients(self):
         # TODO: remove this
@@ -1096,104 +906,34 @@ class SyncServer(object):
         passage_count, document_count = await load_data(connector, source, self.passage_manager, self.file_manager, actor=actor)
         return passage_count, document_count
 
-    def _get_provider_sort_key(self, model: LLMConfig) -> Tuple[int, str, str]:
-        """Get sort key for a model: (provider_priority, provider_name, model_name)"""
-        provider_priority = constants.PROVIDER_ORDER.get(model.provider_name, 999)
-        return (provider_priority, model.provider_name or "", model.model or "")
+    def _get_provider_sort_key(self, model: LLMConfig) -> Tuple[str, str]:
+        """Get sort key for a model: (provider_name, model_name)"""
+        return (model.provider_name or "", model.model or "")
 
-    def _get_embedding_provider_sort_key(self, model: EmbeddingConfig) -> Tuple[int, str, str]:
-        """Get sort key for an embedding model: (provider_priority, provider_name, model_name)"""
+    def _get_embedding_provider_sort_key(self, model: EmbeddingConfig) -> Tuple[str, str]:
+        """Get sort key for an embedding model: (provider_name, model_name)"""
         # Extract provider name from handle (format: "provider_name/model_name")
         provider_name = model.handle.split("/")[0] if model.handle and "/" in model.handle else ""
-        provider_priority = constants.PROVIDER_ORDER.get(provider_name, 999)
-        return (provider_priority, provider_name, model.embedding_model or "")
+        return (provider_name, model.embedding_model or "")
 
     @trace_method
     async def list_llm_models_async(
         self,
         actor: User,
-        provider_category: Optional[List[ProviderCategory]] = None,
         provider_name: Optional[str] = None,
         provider_type: Optional[ProviderType] = None,
     ) -> List[LLMConfig]:
-        """List available LLM models - base from DB, BYOK from provider endpoints"""
+        """List available LLM models - from DB (both global and org-specific)"""
         llm_models = []
 
-        # Determine which categories to include
-        include_base = not provider_category or ProviderCategory.base in provider_category
-        include_byok = not provider_category or ProviderCategory.byok in provider_category
-
-        # Get base provider models from database
-        if include_base:
-            provider_models = await self.provider_manager.list_models_async(
-                actor=actor,
-                model_type="llm",
-                enabled=True,
-            )
-
-            # Build LLMConfig objects from database
-            provider_cache: Dict[str, Provider] = {}
-            for model in provider_models:
-                # Get provider details (with caching to avoid N+1 queries)
-                if model.provider_id not in provider_cache:
-                    provider_cache[model.provider_id] = await self.provider_manager.get_provider_async(model.provider_id, actor)
-                provider = provider_cache[model.provider_id]
-
-                # Skip non-base providers (they're handled separately)
-                if provider.provider_category != ProviderCategory.base:
-                    continue
-
-                # Apply provider_name/provider_type filters if specified
-                if provider_name and provider.name != provider_name:
-                    continue
-                if provider_type and provider.provider_type != provider_type:
-                    continue
-
-                llm_config = LLMConfig(
-                    model=model.name,
-                    model_endpoint_type=model.model_endpoint_type,
-                    model_endpoint=provider.base_url or model.model_endpoint_type,
-                    context_window=model.max_context_window or 16384,
-                    handle=model.handle,
-                    provider_name=provider.name,
-                    provider_category=provider.provider_category,
-                )
-                llm_models.append(llm_config)
-
-        # Get BYOK provider models by hitting provider endpoints directly
-        if include_byok:
-            byok_providers = await self.provider_manager.list_providers_async(
-                actor=actor,
-                name=provider_name,
-                provider_type=provider_type,
-                provider_category=[ProviderCategory.byok],
-            )
-
-            for provider in byok_providers:
-                try:
-                    typed_provider = provider.cast_to_subtype()
-                    models = await typed_provider.list_llm_models_async()
-                    llm_models.extend(models)
-                except Exception as e:
-                    logger.warning(f"Failed to fetch models from BYOK provider {provider.name}: {e}")
-
-        # Sort by provider order (matching old _enabled_providers order), then by model name
-        llm_models.sort(key=self._get_provider_sort_key)
-
-        return llm_models
-
-    async def list_embedding_models_async(self, actor: User) -> List[EmbeddingConfig]:
-        """List available embedding models - base from DB, BYOK from provider endpoints"""
-        embedding_models = []
-
-        # Get base provider models from database
+        # Get all provider models from database
         provider_models = await self.provider_manager.list_models_async(
             actor=actor,
-            model_type="embedding",
+            model_type="llm",
             enabled=True,
         )
 
-        # Build EmbeddingConfig objects from database (base providers only)
+        # Build LLMConfig objects from database
         provider_cache: Dict[str, Provider] = {}
         for model in provider_models:
             # Get provider details (with caching to avoid N+1 queries)
@@ -1201,9 +941,44 @@ class SyncServer(object):
                 provider_cache[model.provider_id] = await self.provider_manager.get_provider_async(model.provider_id, actor)
             provider = provider_cache[model.provider_id]
 
-            # Skip non-base providers (they're handled separately)
-            if provider.provider_category != ProviderCategory.base:
+            # Apply provider_name/provider_type filters if specified
+            if provider_name and provider.name != provider_name:
                 continue
+            if provider_type and provider.provider_type != provider_type:
+                continue
+
+            llm_config = LLMConfig(
+                model=model.name,
+                model_endpoint_type=model.model_endpoint_type,
+                model_endpoint=provider.base_url or model.model_endpoint_type,
+                context_window=model.max_context_window or 16384,
+                handle=model.handle,
+                provider_name=provider.name,
+            )
+            llm_models.append(llm_config)
+
+        llm_models.sort(key=self._get_provider_sort_key)
+
+        return llm_models
+
+    async def list_embedding_models_async(self, actor: User) -> List[EmbeddingConfig]:
+        """List available embedding models - from DB (both global and org-specific)"""
+        embedding_models = []
+
+        # Get all provider models from database
+        provider_models = await self.provider_manager.list_models_async(
+            actor=actor,
+            model_type="embedding",
+            enabled=True,
+        )
+
+        # Build EmbeddingConfig objects from database
+        provider_cache: Dict[str, Provider] = {}
+        for model in provider_models:
+            # Get provider details (with caching to avoid N+1 queries)
+            if model.provider_id not in provider_cache:
+                provider_cache[model.provider_id] = await self.provider_manager.get_provider_async(model.provider_id, actor)
+            provider = provider_cache[model.provider_id]
 
             embedding_config = EmbeddingConfig(
                 embedding_model=model.name,
@@ -1215,45 +990,10 @@ class SyncServer(object):
             )
             embedding_models.append(embedding_config)
 
-        # Get BYOK provider models by hitting provider endpoints directly
-        byok_providers = await self.provider_manager.list_providers_async(
-            actor=actor,
-            provider_category=[ProviderCategory.byok],
-        )
-
-        for provider in byok_providers:
-            try:
-                typed_provider = provider.cast_to_subtype()
-                models = await typed_provider.list_embedding_models_async()
-                embedding_models.extend(models)
-            except Exception as e:
-                logger.warning(f"Failed to fetch embedding models from BYOK provider {provider.name}: {e}")
-
-        # Sort by provider order (matching old _enabled_providers order), then by model name
         embedding_models.sort(key=self._get_embedding_provider_sort_key)
 
         return embedding_models
 
-    async def get_enabled_providers_async(
-        self,
-        actor: User,
-        provider_category: Optional[List[ProviderCategory]] = None,
-        provider_name: Optional[str] = None,
-        provider_type: Optional[ProviderType] = None,
-    ) -> List[Provider]:
-        # Query all persisted providers from database
-        persisted_providers = await self.provider_manager.list_providers_async(
-            name=provider_name,
-            provider_type=provider_type,
-            actor=actor,
-        )
-        providers = [p.cast_to_subtype() for p in persisted_providers]
-
-        # Filter by category if specified
-        if provider_category:
-            providers = [p for p in providers if p.provider_category in provider_category]
-
-        return providers
 
     @trace_method
     async def get_llm_config_from_handle_async(
@@ -1329,7 +1069,6 @@ class SyncServer(object):
         return embedding_config
 
     async def get_provider_from_name_async(self, provider_name: str, actor: User) -> Provider:
-        all_providers = await self.get_enabled_providers_async(actor)
         providers = [provider for provider in all_providers if provider.name == provider_name]
         if not providers:
             raise LettaInvalidArgumentError(

@@ -7,7 +7,7 @@ from letta.constants import DEFAULT_EMBEDDING_CHUNK_SIZE, LLM_MAX_CONTEXT_WINDOW
 from letta.errors import ErrorCode, LLMAuthenticationError, LLMError
 from letta.log import get_logger
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.base import Provider
 
@@ -20,9 +20,6 @@ DEFAULT_EMBEDDING_BATCH_SIZE = 1024
 
 class OpenAIProvider(Provider):
     provider_type: Literal[ProviderType.openai] = Field(ProviderType.openai, description="The type of the provider.")
-    # Memos: Changed default from ProviderCategory.base to ProviderCategory.byok
-    # All providers are now created through the API and stored in the database
-    provider_category: ProviderCategory = Field(ProviderCategory.byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the OpenAI API.", deprecated=True)
     base_url: str = Field("https://api.openai.com/v1", description="Base URL for the OpenAI API.")
 
@@ -81,42 +78,63 @@ class OpenAIProvider(Provider):
         return self._list_llm_models(data)
 
     async def list_embedding_models_async(self) -> list[EmbeddingConfig]:
-        """Return known OpenAI embedding models.
+        """Dynamically fetch embedding models from the OpenAI-compatible API.
 
-        Note: we intentionally do not attempt to fetch embedding models from the remote endpoint here.
-        The OpenAI "models" list does not reliably expose embedding metadata needed for filtering,
-        and in tests we frequently point OPENAI_BASE_URL at a local mock server.
+        Memos: Instead of hardcoding embedding models, we fetch from the /models endpoint
+        and identify embedding models by name patterns. This prevents returning phantom
+        embedding models for providers that only offer LLM functionality.
         """
+        # Known embedding model dimensions (for providers that don't return this info)
+        EMBEDDING_DIMENSIONS = {
+            "text-embedding-ada-002": 1536,
+            "text-embedding-3-small": 1536,
+            "text-embedding-3-large": 3072,
+        }
 
-        return [
-            EmbeddingConfig(
-                embedding_model="text-embedding-ada-002",
-                embedding_endpoint_type="openai",
-                embedding_endpoint=self.base_url,
-                embedding_dim=1536,
-                embedding_chunk_size=DEFAULT_EMBEDDING_CHUNK_SIZE,
-                handle=self.get_handle("text-embedding-ada-002", is_embedding=True),
-                batch_size=DEFAULT_EMBEDDING_BATCH_SIZE,
-            ),
-            EmbeddingConfig(
-                embedding_model="text-embedding-3-small",
-                embedding_endpoint_type="openai",
-                embedding_endpoint=self.base_url,
-                embedding_dim=1536,
-                embedding_chunk_size=DEFAULT_EMBEDDING_CHUNK_SIZE,
-                handle=self.get_handle("text-embedding-3-small", is_embedding=True),
-                batch_size=DEFAULT_EMBEDDING_BATCH_SIZE,
-            ),
-            EmbeddingConfig(
-                embedding_model="text-embedding-3-large",
-                embedding_endpoint_type="openai",
-                embedding_endpoint=self.base_url,
-                embedding_dim=3072,
-                embedding_chunk_size=DEFAULT_EMBEDDING_CHUNK_SIZE,
-                handle=self.get_handle("text-embedding-3-large", is_embedding=True),
-                batch_size=DEFAULT_EMBEDDING_BATCH_SIZE,
-            ),
+        # Patterns that identify embedding models
+        EMBEDDING_PATTERNS = [
+            "text-embedding-",
+            "embedding-",
         ]
+
+        try:
+            data = await self._get_models_async()
+
+            configs = []
+            for model in data:
+                model_id = model.get("id", "")
+
+                # Check if this is an embedding model by name pattern
+                is_embedding = any(model_id.startswith(pattern) or pattern in model_id
+                                   for pattern in EMBEDDING_PATTERNS)
+
+                if not is_embedding:
+                    continue
+
+                # Get embedding dimension
+                model_name = model_id.split(":")[0] if ":" in model_id else model_id
+                embedding_dim = EMBEDDING_DIMENSIONS.get(model_name, 1536)  # Default to 1536
+
+                configs.append(
+                    EmbeddingConfig(
+                        embedding_model=model_id,
+                        embedding_endpoint_type="openai",
+                        embedding_endpoint=self.base_url,
+                        embedding_dim=embedding_dim,
+                        embedding_chunk_size=DEFAULT_EMBEDDING_CHUNK_SIZE,
+                        handle=self.get_handle(model_id, is_embedding=True),
+                        batch_size=DEFAULT_EMBEDDING_BATCH_SIZE,
+                    )
+                )
+
+            if not configs:
+                logger.info(f"No embedding models found for provider '{self.name}' at {self.base_url}")
+
+            return configs
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch embedding models from {self.base_url}: {e}")
+            return []
 
     def _list_llm_models(self, data: list[dict]) -> list[LLMConfig]:
         """
@@ -175,7 +193,6 @@ class OpenAIProvider(Provider):
                 handle=handle,
                 max_tokens=self.get_default_max_output_tokens(model_name),
                 provider_name=self.name,
-                provider_category=self.provider_category,
             )
 
             config = self._set_model_parameter_tuned_defaults(model_name, config)

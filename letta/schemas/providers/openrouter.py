@@ -5,7 +5,8 @@ from pydantic import Field
 from letta.constants import DEFAULT_EMBEDDING_CHUNK_SIZE, LLM_MAX_CONTEXT_WINDOW
 from letta.log import get_logger
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.openai import OpenAIProvider
 
@@ -18,7 +19,6 @@ logger = get_logger(__name__)
 
 class OpenRouterProvider(OpenAIProvider):
     provider_type: Literal[ProviderType.openai] = Field(ProviderType.openai, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     api_key: str | None = Field(None, description="API key for the OpenRouter API.", deprecated=True)
     base_url: str = Field("https://openrouter.ai/api/v1", description="Base URL for the OpenRouter API.")
 
@@ -43,7 +43,6 @@ class OpenRouterProvider(OpenAIProvider):
                 handle=handle,
                 max_tokens=self.get_default_max_output_tokens(model_name),
                 provider_name=self.name,
-                provider_category=self.provider_category,
             )
 
             config = self._set_model_parameter_tuned_defaults(model_name, config)

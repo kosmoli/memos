@@ -8,7 +8,8 @@ from pydantic import Field, field_validator
 from letta.constants import DEFAULT_EMBEDDING_CHUNK_SIZE, LLM_MAX_CONTEXT_WINDOW
 from letta.errors import ErrorCode, LLMAuthenticationError
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+# ProviderCategory removed
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.providers.base import Provider
 
@@ -29,7 +30,6 @@ class AzureProvider(Provider):
     LATEST_API_VERSION: ClassVar[str] = "2024-09-01-preview"
 
     provider_type: Literal[ProviderType.azure] = Field(ProviderType.azure, description="The type of the provider.")
-    provider_category: ProviderCategory = Field(ProviderCategory.byok  # Memos: always byok, description="The category of the provider (Memos: always byok)")
     # Note: 2024-09-01-preview was set here until 2025-07-16.
     # set manually, see: https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation
     latest_api_version: str = "2025-04-01-preview"
@@ -129,7 +129,6 @@ class AzureProvider(Provider):
                     handle=self.get_handle(model_name),
                     max_tokens=self.get_default_max_output_tokens(model_name),
                     provider_name=self.name,
-                    provider_category=self.provider_category,
                 )
             )
         return configs

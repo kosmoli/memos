@@ -3,7 +3,7 @@ from typing import Annotated, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 from letta.schemas.embedding_config import EmbeddingConfig
-from letta.schemas.enums import ProviderCategory, ProviderType
+from letta.schemas.enums import ProviderType
 from letta.schemas.llm_config import LLMConfig
 from letta.schemas.response_format import ResponseFormatUnion
 
@@ -85,9 +85,6 @@ class Model(LLMConfig, ModelBase):
     parallel_tool_calls: Optional[bool] = Field(
         False, description="Deprecated: If set to True, enables parallel tool calling.", deprecated=True
     )
-    provider_category: Optional[ProviderCategory] = Field(
-        None, description="Deprecated: The provider category for the model.", deprecated=True
-    )
 
     @classmethod
     def from_llm_config(cls, llm_config: "LLMConfig") -> "Model":
@@ -119,7 +116,6 @@ class Model(LLMConfig, ModelBase):
             verbosity=llm_config.verbosity,
             tier=llm_config.tier,
             parallel_tool_calls=llm_config.parallel_tool_calls,
-            provider_category=llm_config.provider_category,
         )
 
     @property
