@@ -825,7 +825,6 @@ class LettaAgentV2(BaseAgentV2):
             actor=self.actor,
             agent_id=self.agent_state.id,
             provider_name=self.agent_state.llm_config.model_endpoint_type,
-            provider_category=self.agent_state.llm_config.provider_category or "base",
             model=self.agent_state.llm_config.model,
             model_endpoint=self.agent_state.llm_config.model_endpoint,
             context_window_limit=self.agent_state.llm_config.context_window,

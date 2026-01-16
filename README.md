@@ -8,29 +8,17 @@
 
 # Memos (Fork of Letta)
 
-> **A fork of Letta with unified provider management and no platform lock-in**
+> **A fork of Letta with unified provider management**
 
-Memos is a modified version of [Letta](https://github.com/letta-ai/letta) that removes artificial restrictions on provider management and unifies the provider system.
+Memos is a modified version of [Letta](https://github.com/letta-ai/letta) that unifies the provider system for better flexibility.
 
-## Why Memos?
+## What Memos Changes
 
-Memos was created to address specific limitations in the original Letta project:
+Compared to the original Letta, Memos includes the following modifications:
 
-### Problems with Letta
-
-| Issue | Description |
-|-------|-------------|
-| **Base vs BYOK Confusion** | Two different provider modes with different behaviors |
-| **`openai-proxy` Hardcoding** | Custom OpenAI-compatible APIs forced to use `openai-proxy` prefix |
-| **Soft Delete Issues** | Cannot reuse provider names after deletion |
-| **Platform Prioritization** | Official platform features prioritized over open-source users |
-
-### What Memos Changes
-
-- **Unified Provider System**: All providers (including official APIs) are created through the API and stored in the database
-- **Custom Provider Names**: Use your own names for providers, no forced prefixes
-- **Hard Delete**: Providers are truly deleted, allowing name reuse
-- **No Platform Lock-in**: Complete control over your AI agent infrastructure
+- **Unified Provider System**: All providers are created through the API and stored in the database
+- **Custom Provider Names**: Use your own names for providers
+- **Hard Delete**: Providers are truly deleted from the database
 
 ## Documentation
 
